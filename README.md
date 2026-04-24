@@ -27,13 +27,26 @@ Each script covers a distinct concern and can be run independently, as long as t
 
 ## Usage
 
-Run the scripts in order. Each one is idempotent — safe to run multiple times.
+The setup scripts must be run in the following order. Each one validates that the previous step has been completed before doing anything.
 
 ```bash
-sudo bash setup-php.sh
-sudo bash setup-fpm.sh
-sudo bash setup-nginx.sh
+sudo bash setup-php.sh    # 1. Install PHP, extensions and start PHP-FPM
+sudo bash setup-fpm.sh    # 2. Fine-tune the PHP-FPM pool
+sudo bash setup-nginx.sh  # 3. Install and configure nginx
 ```
+
+**Why this order:**
+
+- `setup-fpm.sh` requires `php-fpm` to be installed and running — which `setup-php.sh` guarantees.
+- `setup-nginx.sh` is independent of the PHP scripts, but the virtual host template it generates references the PHP-FPM socket, so running it last keeps things consistent.
+
+`create-vhost.sh` is not part of the initial setup — run it once per project, any time after `setup-nginx.sh`:
+
+```bash
+sudo bash create-vhost.sh
+```
+
+All scripts are idempotent — safe to run multiple times.
 
 ---
 
