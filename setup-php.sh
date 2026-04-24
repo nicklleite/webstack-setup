@@ -47,6 +47,7 @@ PACKAGES=(
     php-xsl      # XSL/XSLT support
     php-redis    # Redis extension
     php-igbinary # Binary serializer (dependency of php-redis)
+    composer     # PHP dependency manager
 )
 
 info "Installing PHP and extensions via pacman..."
