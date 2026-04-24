@@ -8,11 +8,12 @@ Each script covers a distinct concern and can be run independently, as long as t
 
 ## What's included
 
-| Script | What it does |
-|---|---|
-| `setup-php.sh` | Installs PHP and extensions, activates them in `php.ini` and `conf.d`, configures OPcache, starts PHP-FPM |
-| `setup-fpm.sh` | Calculates and applies PHP-FPM pool parameters based on available hardware |
-| `setup-nginx.sh` | Installs nginx, writes an optimized `nginx.conf`, creates the virtual host directory structure, and provides a Laravel-ready virtual host template |
+| Script            | What it does                                                                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup-php.sh`    | Installs PHP and extensions, activates them in `php.ini` and `conf.d`, configures OPcache, starts PHP-FPM                                          |
+| `setup-fpm.sh`    | Calculates and applies PHP-FPM pool parameters based on available hardware                                                                         |
+| `setup-nginx.sh`  | Installs nginx, writes an optimized `nginx.conf`, creates the virtual host directory structure, and provides a Laravel-ready virtual host template |
+| `create-vhost.sh` | Interactively creates and activates a new nginx virtual host for a Laravel project                                                                 |
 
 ---
 
@@ -57,10 +58,10 @@ After installation, it:
 **OPcache memory allocation by RAM:**
 
 | Total RAM | opcache.memory_consumption |
-|---|---|
-| ≥ 16 GB | 256 MB |
-| ≥ 8 GB | 128 MB |
-| < 8 GB | 64 MB |
+| --------- | -------------------------- |
+| ≥ 16 GB   | 256 MB                     |
+| ≥ 8 GB    | 128 MB                     |
+| < 8 GB    | 64 MB                      |
 
 > **Note:** OPcache is configured with `validate_timestamps=1` for local development — PHP checks whether files have changed on each request. In production, set `validate_timestamps=0` for maximum performance.
 
@@ -71,18 +72,19 @@ After installation, it:
 Calculates PHP-FPM pool parameters based on detected hardware and prompts for confirmation before applying.
 
 **Assumptions:**
+
 - Average PHP-FPM worker memory (Laravel): ~50 MB
 - 20% of total RAM is reserved for the OS and other processes
 
 **Calculated parameters:**
 
-| Parameter | Formula |
-|---|---|
-| `pm.max_children` | `(RAM × 80%) ÷ 50MB` |
-| `pm.start_servers` | `max_children ÷ 4` |
-| `pm.min_spare_servers` | `max_children ÷ 4` |
-| `pm.max_spare_servers` | `max_children ÷ 2` |
-| `pm.max_requests` | `500` (fixed — recycles workers to prevent memory leaks) |
+| Parameter              | Formula                                                  |
+| ---------------------- | -------------------------------------------------------- |
+| `pm.max_children`      | `(RAM × 80%) ÷ 50MB`                                     |
+| `pm.start_servers`     | `max_children ÷ 4`                                       |
+| `pm.min_spare_servers` | `max_children ÷ 4`                                       |
+| `pm.max_spare_servers` | `max_children ÷ 2`                                       |
+| `pm.max_requests`      | `500` (fixed — recycles workers to prevent memory leaks) |
 
 A timestamped backup of `www.conf` is created before any change is applied.
 
@@ -119,6 +121,34 @@ ln -s /etc/nginx/sites-available/myproject.conf \
 # 5. Validate and reload
 nginx -t && systemctl reload nginx
 ```
+
+---
+
+### create-vhost.sh
+
+Interactively creates a new nginx virtual host for a Laravel project. Run once per project, any time after `setup-nginx.sh`.
+
+```bash
+sudo bash create-vhost.sh
+```
+
+The script asks three questions, displaying a short explanation and an example for each:
+
+| Question     | What it expects                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| Project name | Lowercase letters, numbers and hyphens. Used for the config filename and nginx logs.       |
+| Local domain | The domain nginx will respond to (e.g. `alma.local`). Added to `/etc/hosts` automatically. |
+| Root path    | Absolute path to the Laravel project's `public/` directory.                                |
+
+After confirmation, it:
+
+- Writes the virtual host config to `/etc/nginx/sites-available/<project>.conf`
+- Adds the domain to `/etc/hosts` (skips if already present)
+- Creates a symlink in `/etc/nginx/sites-enabled/`
+- Runs `nginx -t` to validate the configuration
+- Reloads nginx
+
+All virtual hosts are created on port 80.
 
 ---
 
